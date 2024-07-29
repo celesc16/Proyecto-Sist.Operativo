@@ -4,17 +4,18 @@ class Customer:
     def __init__(self, fifo_path):
         self.fifo_path = fifo_path
 
-    def enviar_mensaje(self, mensaje):
+    def send_messaje(self, messaje):
+        
         if not os.path.exists(self.fifo_path):
-            raise FileNotFoundError(f"No se encontró la FIFO en la ruta: {self.fifo_path}")
-          
+            raise FileNotFoundError(f"The FIFO was not found in the path: {self.fifo_path}")
+        
         with open(self.fifo_path, 'w') as fifo:
-            fifo.write(mensaje)
-            print(f"Cliente envió: {mensaje}")
+            fifo.write(messaje)
+            print(f"Customer sended: {messaje}")
 
 if __name__ == "__main__":
     fifo_path = "/tmp/fifo_server"
     customer = Customer(fifo_path)
 
-    mensaje = "ricuet"
-    customer.enviar_mensaje(mensaje)
+    messaje = "ricuet"
+    customer.send_messaje(messaje)

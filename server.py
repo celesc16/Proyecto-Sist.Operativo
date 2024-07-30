@@ -24,6 +24,17 @@ class Server:
                     response = self.process_request(data)
                     self.respond_to_client(response)
 
+    def procces_request(self,response):
+        if request.lower() == "ricuet":
+            return "Hola! Request recibido!. Como puedo ayudarte?"
+        else:
+            return " Lo siento!, no se puedo procesar tu solicitud"
+
+    def respond_to_client(self,response):
+        with open(self.fifo_path, 'w' ) as fifo:
+            fifo.write(response)
+            print(f"Respuesta enviada al cliente : {response}")
 
 if __name__ == "__main__":
         server = Server()
+        server.listen() 

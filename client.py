@@ -16,7 +16,7 @@ class Client:
     def receive_response(self):
         with open(self.response_fifo_path, 'r') as fifo:
             response = fifo.read().strip()
-            print(f"Customer received: {response}")
+            print(f"Client received: {response}")
             return response
 
 if __name__ == "__main__":

@@ -1,29 +1,50 @@
 import os
+import time
+
+SERVER_FIFO = "/tmp/fifo_server"
+CLIENT_FIFO_TEMPLATE = '/tmp/fifo_client_%d'
 
 class Client:
-    def __init__(self, fifo_path, response_fifo_path): 
-        self.fifo_path = fifo_path
-        self.response_fifo_path = response_fifo_path
+    def __init__(self, client_id):
+        self.client_id = client_id
+        self.client_fifo = CLIENT_FIFO_TEMPLATE % self.client_id
+        self.create_client_fifo()
 
-    def send_message(self, message): 
-        if not os.path.exists(self.fifo_path):
-            raise FileNotFoundError(f"El FIFO no se ha encontrado en la ruta: {self.fifo_path}")
+    def create_client_fifo(self):
+        if not os.path.exists(self.client_fifo):
+            os.mkfifo(self.client_fifo)
+            print(f"FIFO cliente {self.client_fifo} creada")
+        else:
+            print(f"FIFO {self.client_fifo} ya existe")
 
-        with open(self.fifo_path, 'w') as fifo:
-            fifo.write(message)
-            print(f"Cliente envió: {message}")
+    def send_request(self, request_type, data):
+        request = f"{self.client_id},{request_type},{data}"
+        with open(SERVER_FIFO, 'w') as fifo:
+            fifo.write(request)
+        print(f"El cliente {self.client_id} envió la solicitud: {request}")
 
     def receive_response(self):
-        with open(self.response_fifo_path, 'r') as fifo:
-            response = fifo.read().strip()
-            print(f"Cliente recibió: {response}")
-            return response
+        while True:
+            with open(self.client_fifo, 'r') as fifo:
+                response = fifo.read().strip()
+                if response:
+                    print(f"El cliente {self.client_id} recibió la respuesta: {response}")
+                    break
+            time.sleep(1)
+
+    def run(self):
+        while True:
+            request_type = input("Ingrese el tipo de solicitud (body-header) o 'salir' para salir: ")
+
+            if request_type == 'salir':
+                print("Cliente salió")
+                break
+            data = input("Introducir datos: ")
+            self.send_request(request_type, data)
+            self.receive_response()
 
 if __name__ == "__main__":
-    fifo_path = "/tmp/fifo_server"
-    response_fifo_path = "/tmp/fifo_response"
-    client = Client(fifo_path, response_fifo_path)
+    client_id = os.getpid()
+    client = Client(client_id)
+    client.run()
 
-    message = "ricuet"
-    client.send_message(message)  
-    response = client.receive_response()

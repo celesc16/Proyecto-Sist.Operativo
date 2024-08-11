@@ -1,16 +1,19 @@
 import os
 import time
 
+# Ruta del FIFO del servidor para recibir solicitudes
 SERVER_FIFO = "/tmp/fifo_server"
+# Plantilla para la ruta del FIFO de cada cliente
 CLIENT_FIFO_TEMPLATE = '/tmp/fifo_client_%d'
 
 class Server:
     def __init__(self):
+        # Inicialización del servidor con la creación de FIFO
         self.server_fifo = SERVER_FIFO
-        self.sequence_number = 0
         self.create_server_fifo()
 
     def create_server_fifo(self):
+        # Creación del FIFO del servidor si no existe
         if not os.path.exists(self.server_fifo):
             os.mkfifo(self.server_fifo)
             print(f"FIFO {self.server_fifo} creada")
@@ -19,34 +22,38 @@ class Server:
 
     def handle_request(self, request):
         try:
-            parts = request.split(",")
-            if len(parts) < 3:
-                print(f"El formato es inválido: {request}")
+            # Se espera que el mensaje esté en formato "header|body"
+            header, body = request.split('|', 1)
+
+            # Procesar el header para obtener la información
+            header_data = {}
+            for part in header.split(';'):
+                key, value = part.split('=', 1)
+                header_data[key] = value
+
+            client_id = int(header_data.get("client_id", -1))
+            client_fifo = header_data.get("fifo_path", "")
+
+            # Validar que el header contenga la información necesaria
+            if client_id == -1 or not client_fifo:
+                print("Header incompleto o incorrecto")
                 return
-            client_id = int(parts[0])
-            request_type = parts[1]
-            data = parts[2] if len(parts) > 2 else ''
-            client_fifo = CLIENT_FIFO_TEMPLATE % client_id
-            self.sequence_number += 1
 
-            if request_type.lower() == "body":
-                response = f"Body recibido: {data}, Número de secuencia: {self.sequence_number}"
+            # Mostrar la información almacenada en el servidor
+            print(f"Guardado en header: {header_data}")
+            print(f"Guardado en body: {body}")
 
-            elif request_type.lower() == "header":
-                response = f"Header recibido: {data}, Número de secuencia: {self.sequence_number}"
-
-            else:
-                response = f"Tipo de solicitud desconocido: {request_type}, Número de secuencia: {self.sequence_number}"
-
+            # Responder al cliente con la misma información
+            response = f"Header guardado: {header_data} y  Body guardado: {body}"
             if os.path.exists(client_fifo):
                 with open(client_fifo, 'w') as fifo:
                     fifo.write(response)
-                print(f"Respuesta: '{response}' enviada al cliente: {client_id}")
+                print(f"Respuesta enviada al cliente {client_id}: {response}")
             else:
                 print(f"FIFO del cliente {client_id} no existe")
 
         except Exception as e:
-            print(f"No se pudo manejar la solicitud: {e}")
+            print(f"Error al manejar la solicitud: {e}")
 
     def listen(self):
         print("Servidor escuchando solicitudes...")
